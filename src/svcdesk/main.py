@@ -166,3 +166,24 @@ def transition(ticket_id: str, action: str, now: datetime = Depends(request_now)
                 ticket[timestamp] = stamp(now)
         connection.execute("UPDATE tickets SET body = ? WHERE id = ?", (json.dumps(ticket), ticket_id))
     return ticket
+
+
+@app.post("/dora/metrics")
+async def dora_metrics(request: Request):
+    from .dora import calculate
+    try:
+        return calculate(await request.json())
+    except (ValueError, TypeError, OverflowError) as exc:
+        return error(422, "invalid_log", str(exc))
+
+
+@app.get("/dora/ticket-events")
+def ticket_events():
+    phases = {"created_at": ("created", "new"), "acknowledged_at": ("acknowledged", "acknowledged"),
+              "resolved_at": ("resolved", "resolved"), "closed_at": ("closed", "closed")}
+    with database() as connection:
+        tickets = [json.loads(row[0]) for row in connection.execute("SELECT body FROM tickets")]
+    events = [{"ticket_id": ticket["id"], "at": ticket[field], "phase": phase,
+               "priority": ticket["priority"], "state": state}
+              for ticket in tickets for field, (phase, state) in phases.items() if ticket.get(field)]
+    return sorted(events, key=lambda event: (parse_instant(event["at"]), event["ticket_id"]))

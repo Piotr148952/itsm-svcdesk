@@ -18,7 +18,7 @@ class Counts:
 
 if __name__ == "__main__":
     counts = Counts()
-    code = pytest.main([str(Path(__file__).with_name("test_api.py")), "-q", "-p", "no:cacheprovider"], plugins=[counts])
+    code = pytest.main([str(Path(__file__).parent), "-q", "-p", "no:cacheprovider"], plugins=[counts])
     failures = counts.failed if code == 0 else max(1, counts.failed)
     print(f"ITSMLAB-TESTS: passed={counts.passed} failed={failures}", flush=True)
     sys.exit(int(code))

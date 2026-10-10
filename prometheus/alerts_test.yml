@@ -1,0 +1,106 @@
+# ai-generated: 100% - Codex designed onset, sub-threshold and recovery tests with unrelated-route noise.
+rule_files: [alerts.yml]
+evaluation_interval: 1m
+tests:
+  - name: KbSearchAvailabilityFast-onset
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+600x70 42360+360x80'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0x70 240+240x80'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x151'
+    alert_rule_test:
+      - eval_time: 104m
+        alertname: KbSearchAvailabilityFast
+        exp_alerts: []
+      - eval_time: 105m
+        alertname: KbSearchAvailabilityFast
+        exp_alerts:
+          - exp_labels: {service: svcdesk, slo: availability, severity: P1}
+            exp_annotations:
+              summary: "Knowledge-base search availability budget burning at over 10 times the sustainable rate"
+  - name: KbSearchAvailabilityFast-below-threshold
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+504x180'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0+96x180'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x180'
+    alert_rule_test:
+      - eval_time: 180m
+        alertname: KbSearchAvailabilityFast
+        exp_alerts: []
+  - name: KbSearchAvailabilityFast-recovery
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+600x10 6360+360x74 33600+600x11'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0x10 240+240x74 18000x12'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x97'
+    alert_rule_test:
+      - eval_time: 84m
+        alertname: KbSearchAvailabilityFast
+        exp_alerts:
+          - exp_labels: {service: svcdesk, slo: availability, severity: P1}
+            exp_annotations:
+              summary: "Knowledge-base search availability budget burning at over 10 times the sustainable rate"
+      - eval_time: 94m
+        alertname: KbSearchAvailabilityFast
+        exp_alerts: []
+  - name: KbSearchAvailabilitySlow-onset
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+600x370 222528+528x380'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0x370 72+72x380'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x751'
+    alert_rule_test:
+      - eval_time: 554m
+        alertname: KbSearchAvailabilitySlow
+        exp_alerts: []
+      - eval_time: 555m
+        alertname: KbSearchAvailabilitySlow
+        exp_alerts:
+          - exp_labels: {service: svcdesk, slo: availability, severity: P2}
+            exp_annotations:
+              summary: "Knowledge-base search availability budget burning at over 3 times the sustainable rate"
+  - name: KbSearchAvailabilitySlow-below-threshold
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+571.2x1080'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0+28.8x1080'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x1080'
+    alert_rule_test:
+      - eval_time: 1080m
+        alertname: KbSearchAvailabilitySlow
+        exp_alerts: []
+  - name: KbSearchAvailabilitySlow-recovery
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="200"}'
+        values: '0+600x10 6528+528x374 204600+600x36'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/kb/search",http_response_status_code="502"}'
+        values: '0x10 72+72x374 27000x37'
+      - series: 'http_server_request_duration_seconds_count{job="svcdesk",http_request_method="GET",http_route="/tickets/{id}",http_response_status_code="200"}'
+        values: '0+600x422'
+    alert_rule_test:
+      - eval_time: 384m
+        alertname: KbSearchAvailabilitySlow
+        exp_alerts:
+          - exp_labels: {service: svcdesk, slo: availability, severity: P2}
+            exp_annotations:
+              summary: "Knowledge-base search availability budget burning at over 3 times the sustainable rate"
+      - eval_time: 419m
+        alertname: KbSearchAvailabilitySlow
+        exp_alerts: []

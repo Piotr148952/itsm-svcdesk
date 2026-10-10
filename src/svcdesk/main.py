@@ -9,12 +9,14 @@ import sqlite3
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Request
+import httpx
+from fastapi import Depends, FastAPI, Request, Query
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from starlette.exceptions import HTTPException
 from .clock import business_open, deadlines, parse_instant, stamp
+from .monitoring import RequestMetrics, exposition
 
 DB_PATH = os.getenv("SVCDESK_DB", "/data/svcdesk.db")
 
@@ -39,10 +41,30 @@ async def lifespan(app):
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     with database() as connection:
         connection.execute("CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY, body TEXT NOT NULL)")
-    yield
+    async with httpx.AsyncClient(timeout=3.0, limits=httpx.Limits(max_connections=100, max_keepalive_connections=64), trust_env=False) as client:
+        app.state.kb_client = client
+        yield
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(RequestMetrics)
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(content=exposition(), headers={"Content-Type": "text/plain; version=0.0.4; charset=utf-8"})
+
+
+@app.get("/kb/search")
+async def kb_search(request: Request, q: Annotated[str, Query(min_length=1, max_length=200)]):
+    try:
+        response = await request.app.state.kb_client.get(
+            os.getenv("KB_INDEX_URL", "http://kb-index:8080").rstrip("/") + "/search", params={"q": q})
+        if response.status_code != 200:
+            return error(502, "upstream_unavailable", "Knowledge-base index is unavailable")
+        return {"query": q, "hits": response.json()["hits"]}
+    except (httpx.HTTPError, ValueError, KeyError):
+        return error(502, "upstream_unavailable", "Knowledge-base index could not answer")
 
 
 class Reporter(BaseModel):

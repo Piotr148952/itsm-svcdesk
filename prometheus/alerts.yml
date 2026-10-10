@@ -1,0 +1,22 @@
+# ai-generated: 100% - Codex drafted multiwindow availability burn rules; verified with promtool and mutation tests.
+groups:
+  - name: svcdesk-slo
+    rules:
+      - alert: KbSearchAvailabilityFast
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search",http_response_status_code=~"5.."}[60m])) / sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search"}[60m])) > 10 * (1 - 0.98))
+          and
+          (sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search",http_response_status_code=~"5.."}[5m])) / sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search"}[5m])) > 10 * (1 - 0.98))
+        for: 5m
+        labels: {service: svcdesk, slo: availability, severity: P1}
+        annotations:
+          summary: "Knowledge-base search availability budget burning at over 10 times the sustainable rate"
+      - alert: KbSearchAvailabilitySlow
+        expr: |
+          (sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search",http_response_status_code=~"5.."}[360m])) / sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search"}[360m])) > 3 * (1 - 0.98))
+          and
+          (sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search",http_response_status_code=~"5.."}[30m])) / sum(rate(http_server_request_duration_seconds_count{job="svcdesk",http_route="/kb/search"}[30m])) > 3 * (1 - 0.98))
+        for: 5m
+        labels: {service: svcdesk, slo: availability, severity: P2}
+        annotations:
+          summary: "Knowledge-base search availability budget burning at over 3 times the sustainable rate"
